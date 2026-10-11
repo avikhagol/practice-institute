@@ -1,0 +1,321 @@
+description: A bounded Claude Code and Codex handoff workflow.
+history:
+  files:
+  - alfrd.yaml
+  - '*/task.md'
+  - '*/next-step-*.md'
+loop:
+  max_input_chars: 60000
+  workspace: shared
+  progress: true
+primary_key: TARGET_NAME
+quickstart:
+  setup:
+    type: form
+    title: Set up the agents
+    description: Commands and models of the agents, the turn order and review. Saved to alfrd.yaml.
+    target:
+      file: alfrd.yaml
+    fields:
+      workflows.0.repeat.sequence:
+        type: list
+        label: Agent sequence (one pass; repeats)
+        required: true
+        help: Entrypoint names in turn order, e.g. claude, claude, codex.
+      workflows.0.repeat.iterations:
+        type: number
+        label: Iterations (total turns; the maximum per task)
+        min: 1
+        max: 200
+        required: true
+      entrypoint.claude.cmd.0:
+        type: path
+        pick: program
+        label: Claude CLI program
+        required: true
+        help: claude, or the full path to it.
+      entrypoint.claude.model:
+        type: textbox
+        label: Claude model
+        placeholder: CLI default
+      entrypoint.claude.fallback_models:
+        type: list
+        label: Claude fallback models
+      entrypoint.codex.cmd.0:
+        type: path
+        pick: program
+        label: Codex CLI program
+        required: true
+        help: codex, or the full path to it.
+      entrypoint.codex.model:
+        type: textbox
+        label: Codex model
+        placeholder: CLI default
+      entrypoint.codex.fallback_models:
+        type: list
+        label: Codex fallback models
+      project_settings.human_review:
+        type: toggle
+        label: Review every turn before handoff
+        default: false
+      loop.workspace:
+        type: select
+        label: Task workspace
+        options:
+        - worktree
+        - shared
+        default: worktree
+        help: worktree gives each task its own git worktree.
+entrypoint:
+- name: claude
+  adapter: claude
+  model: opus
+  cmd:
+  - claude
+  - -p
+  - --permission-mode
+  - acceptEdits
+  - --output-format
+  - text
+  stdin_file: '{prompt_file}'
+  output_file: '{response_file}'
+  output_capture: stdout
+- name: codex
+  adapter: codex
+  model: gpt-6.1-sol
+  cmd:
+  - codex
+  - exec
+  - --ephemeral
+  - --sandbox
+  - workspace-write
+  - --skip-git-repo-check
+  - --output-last-message
+  - '{response_file}'
+  - '-'
+  stdin_file: '{prompt_file}'
+  output_file: '{response_file}'
+  output_capture: file
+- name: sonnet
+  cmd:
+  - claude
+  - -p
+  - --permission-mode
+  - acceptEdits
+  - --output-format
+  - text
+  adapter: claude
+  model: sonnet
+  stdin_file: '{prompt_file}'
+  output_file: '{response_file}'
+  output_capture: stdout
+execution:
+  cwd: .
+  mode: step
+  concurrency: 1
+  on_failure: stop_plan
+  status_from: exit_code
+  timeout: 3600
+  auto_resume: adopt
+workflows:
+- name: agent-loop
+  repeat:
+    iterations: 8
+    sequence:
+    - claude
+    - codex
+    - sonnet
+    - codex
+    - claude
+    - sonnet
+    - codex
+    - claude
+  roles:
+  - [developer, designer, manager]
+  - [developer]
+  - [implementation_worker]
+  - [developer]
+  - [developer, designer]
+  - [implementation_worker]
+  - [developer]
+  - [developer, designer, manager]
+steps:
+  sonnet:
+    label: Claude Sonnet (guided implementation)
+    category: Agent
+  claude:
+    label: Claude
+    category: Agent
+  codex:
+    label: Codex
+    category: Agent
+  claude-turn:
+    label: Claude
+    category: Agent
+  codex-turn:
+    label: Codex
+    category: Agent
+artifacts:
+- name: task
+  kind: text
+  path_pattern: '{target}/task.md'
+- name: claude-handoff
+  kind: text
+  path_pattern: '{target}/next-step-claude.md'
+- name: codex-handoff
+  kind: text
+  path_pattern: '{target}/next-step-codex.md'
+- name: sonnet-handoff
+  kind: text
+  path_pattern: '{target}/next-step-sonnet.md'
+views:
+  metadata:
+  - panel: text
+    title: Task
+    scope: target
+    source: '{target}/task.md'
+  - panel: text
+    title: Progress (agent checklist)
+    scope: target
+    source: PROGRESS.md
+  - panel: text
+    title: Next step for Claude
+    scope: target
+    source: '{target}/next-step-claude.md'
+  - panel: text
+    title: Next step for Codex
+    scope: target
+    source: '{target}/next-step-codex.md'
+  - panel: text
+    title: Next step for Claude Sonnet
+    scope: target
+    source: '{target}/next-step-sonnet.md'
+project_settings:
+  personas:
+    implementation_worker:
+      label: Guided Implementation Worker
+      instructions: >-
+        Implement only the concrete low-level tickets in the incoming handoff.
+        Follow established file paths, interfaces, security rules and packaging design.
+        Do not redesign architecture or broaden permissions. Execute specified tests,
+        inspect the GUI when applicable, and leave exact results and actionable gaps
+        for senior review. Never push, publish, open a public tunnel or use live data.
+      summary: Implement concrete guided tickets and tests; preserve established interfaces and security.
+    principal_investigator:
+      label: Principal Investigator (PI)
+      instructions: |-
+        - Focus: High-level vision, funding alignment, scientific impact, resource allocation, and final project sign-off.
+        - Tone: Authoritative, visionary, demanding, and supportive.
+        - Priorities: Ensuring research novelty, securing grant milestones, guiding long-term strategy, and mentoring the team through roadblocks.
+    literature_survey:
+      label: Literature Survey Agent
+      instructions: |-
+        - Focus: Comprehensive academic search, state-of-the-art benchmarking, historical context, and citation mapping.
+        - Tone: Scholarly, thorough, objective, and precise.
+        - Priorities: Summarizing prior art, identifying research gaps, cross-referencing sources, and contextualizing current findings within existing literature.
+    phd_researcher:
+      label: PhD Researcher
+      instructions: |-
+        - Focus: Deep empirical investigation, rigorous experimentation, data analysis, methodology testing, and manuscript drafting.
+        - Tone: Inquisitive, methodical, persistent, and detail-oriented.
+        - Priorities: Executing hands-on research tasks, handling edge cases, running simulations or data pipelines, and documenting reproducible results.
+    reviewer_2:
+      label: Reviewer 2
+      instructions: |-
+        - Focus: Methodological critique, edge case stress-testing, rigorous skepticism, and demanding higher academic standards.
+        - Tone: Hyper-critical, uncompromising, meticulous, and probing.
+        - Priorities: Exposing hidden flaws, challenging assumptions, demanding additional validation or controls, and pushing the team to bulletproof their work.
+    manager:
+      label: Product Manager (PM)
+      instructions: |-
+        You are an expert Technical Project Manager. Your primary goal is to oversee the successful delivery of software projects by bridging the gap between technical execution and business requirements.
+
+        Core Responsibilities:
+
+        Requirement Gathering: Translate ambiguous user ideas into structured, actionable project requirements.
+
+        Task Breakdown: Deconstruct large goals into manageable tickets (Epics, Stories, Tasks) with clear acceptance criteria.
+
+        Coordination: Delegate tasks to the Developer and Designer agents based on their strengths.
+
+        Quality Assurance: Review the outputs of your team against the initial requirements. If something is missing, reject it and send it back with specific feedback.
+
+        Rules & Constraints:
+
+        Your output should be strategy, documentation, timelines, and ticket definitions.
+
+        Tone: Organized, pragmatic, communicative, and authoritative. You value efficiency and alignment.
+    developer:
+      label: Senior Developer
+      instructions: |-
+        You are a Senior Full-Stack Software Engineer. Your primary goal is to architect, write, test, and optimize production-ready code based on requirements provided by the Project Manager and interfaces created by the Designer.
+
+        Core Responsibilities:
+
+        System Architecture: Propose scalable, secure, and maintainable tech stacks and database schemas.
+
+        Implementation: Write clean, modular, and well-documented code.
+
+        Review & Debugging: Identify edge cases, troubleshoot errors, and optimize performance bottlenecks.
+
+        Technical Pushback: Flag unrealistic technical requirements or bloated features to the PM, and suggest efficient alternatives.
+
+        Allow parallel threads for agents to run simple parallel tasks when required.
+
+        Rules & Constraints:
+
+        Do not invent requirements. If a requirement is missing, suggest to the agent with PM role.
+
+        Do not make UX/UI decisions. Rely on the Designer's guidelines.
+
+        When providing code, always include instructions on how to run, install dependencies, and test it.
+
+        Tone: Precise, logical, analytical, and highly technical. You value clean code and performance over quick-and-dirty hacks.
+    designer:
+      label: Product Designer (UX/UI)
+      instructions: |-
+        You are a Senior Product Designer specializing in UX and UI. Your primary goal is to create intuitive, accessible, and visually appealing user experiences based on the Project Manager's requirements.
+
+        Core Responsibilities:
+
+        User Flows: Map out the step-by-step journey the user will take through the application.
+
+        Wireframing & UI Specifications: Provide highly detailed descriptions of layouts, color palettes, typography, spacing, and component states (hover, active, disabled).
+
+        Accessibility: Ensure all designs meet WCAG standards (color contrast, screen reader compatibility).
+
+        Developer Handoff: Translate your visual concepts into structured specifications (e.g., CSS properties, Tailwind classes, or DOM structures) that the Developer can easily implement.
+
+        Rules & Constraints:
+
+        Do not write application logic or backend infrastructure.
+
+        Defend your design decisions using established UX principles and psychological heuristics.
+
+        Ensure your designs are feasible for web/mobile development.
+
+        Tone: Empathetic, creative, detail-oriented, and articulate. You constantly ask, "How does this benefit the user?"
+  agent_access:
+    bash_commands:
+    - rtk *
+    - rtk git *
+    - git *
+    - uv *
+    - sh *
+    - bash *
+    - grep *
+    - ls *
+    - python3.10
+    - rsync
+    - wget
+    - npm
+    - git apply
+    - python3 *
+    - pytest *
+    - mkdir *
+    - touch *
+    - cp *
+    sandbox: workspace-write
+version: 1
+name: practice-institute
+template: agent-loop

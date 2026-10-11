@@ -1,0 +1,83 @@
+/* Practice Institute design tokens — "Paper & Ink" (inherited from the PDF Smart baseline).
+   Warm paper backgrounds, ink-dark text, terracotta accent, saffron as decoration only.
+   Contrast (WCAG 2.2, measured against --paper #FBF6EE):
+     --ink 15.6:1 · --ink-2 7.4:1 · --accent 5.3:1 · --accent-ink 7.9:1 · --sage 6.2:1
+     white on --accent 5.6:1 · --warn-ink on --warn-soft 6.1:1 · --danger on --danger-soft 6.3:1
+   Saffron (#F2B544) is NEVER used for text or as the only state indicator. */
+:root {
+  /* Surfaces */
+  --paper: #fbf6ee;
+  --paper-2: #f4ebdd;
+  --surface: #fffdf9;
+  --line: #e3d6c3;
+  --line-strong: #c9b59b;
+
+  /* Text */
+  --ink: #2a2118;
+  --ink-2: #5c4e40;
+  --ink-inverse: #fffdf9;
+
+  /* Brand + states */
+  --accent: #b4471f;
+  --accent-ink: #8f3412;
+  --accent-soft: #f7e1d3;
+  --saffron: #f2b544;
+  --sage: #2f6b4f;
+  --sage-soft: #ddebe2;
+  --warn-ink: #7a4f00;
+  --warn-soft: #fbefd2;
+  --danger: #a12a2a;
+  --danger-soft: #f8e0dc;
+  --focus: #1f5fbf;
+
+  /* Type */
+  --font-display: 'Fraunces Variable', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --font-body: 'Source Sans 3 Variable', 'Noto Sans Devanagari', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-reading: 'Source Sans 3 Variable', 'Noto Sans Devanagari', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+
+  --text-xs: 0.8125rem; /* 13px — metadata only */
+  --text-sm: 0.875rem; /* 14px */
+  --text-md: 1rem; /* 16px body */
+  --text-lg: 1.125rem; /* 18px reading */
+  --text-xl: 1.375rem; /* 22px */
+  --text-2xl: 1.75rem; /* 28px */
+  --text-3xl: 2.25rem; /* 36px */
+  --text-hero: clamp(2.4rem, 1.6rem + 3.6vw, 4rem);
+
+  /* Space (4px grid) */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 72px;
+  --s-9: 96px;
+
+  /* Shape + depth */
+  --r-sm: 8px;
+  --r-md: 14px;
+  --r-lg: 22px;
+  --r-pill: 999px;
+  --shadow-1: 0 1px 2px rgba(60, 40, 20, 0.06), 0 1px 1px rgba(60, 40, 20, 0.04);
+  --shadow-2: 0 12px 32px -14px rgba(90, 50, 20, 0.28), 0 2px 6px rgba(60, 40, 20, 0.06);
+
+  /* Motion */
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --dur-fast: 160ms;
+  --dur: 280ms;
+
+  /* Layout */
+  --content: 1120px;
+  --reading: 68ch;
+  --target: 44px; /* minimum touch target */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur: 0ms;
+  }
+}

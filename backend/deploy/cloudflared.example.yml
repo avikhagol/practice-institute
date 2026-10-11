@@ -1,0 +1,10 @@
+# Owner fills these placeholders privately. This template has NOT been deployed.
+# Student API only; admin and source originals remain on the owner's loopback UI.
+tunnel: <TUNNEL-UUID>
+credentials-file: /absolute/private/path/<TUNNEL-UUID>.json
+
+ingress:
+  - hostname: api.example.invalid
+    path: ^/api/v1(/.*)?$
+    service: http://127.0.0.1:8787
+  - service: http_status:404

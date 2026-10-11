@@ -1,0 +1,7 @@
+node_modules/
+# dist/ is intentionally NOT ignored: the task asks for a built artifact to be supplied.
+public/pdfjs/
+*.tsbuildinfo
+.DS_Store
+
+.npm-cache/
