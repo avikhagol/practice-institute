@@ -1,0 +1,7 @@
+# Owner runtime only: keep uvicorn plain (no standard extras).
+# Match the audited backend lock; update these pins deliberately with regression tests.
+argon2-cffi==25.1.0
+fastapi==0.143.0
+pypdf==6.20.0
+python-multipart==0.0.32
+uvicorn==0.54.0

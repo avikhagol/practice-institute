@@ -1,0 +1,25 @@
+{
+  "name": "practice-institute-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Practice Institute private laptop launcher",
+  "author": "Practice Institute",
+  "license": "MIT",
+  "main": "dist/main/main.cjs",
+  "scripts": {
+    "build": "tsc --noEmit && node scripts/build.mjs",
+    "start": "npm run build && electron .",
+    "test": "vitest run",
+    "package:linux": "npm run build && electron-builder --linux deb --x64 --publish never",
+    "package:win": "npm run build && electron-builder --win nsis --x64 --publish never"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "electron": "44.7.0",
+    "electron-builder": "26.15.3",
+    "esbuild": "0.28.2",
+    "jsdom": "30.1.2",
+    "typescript": "5.9.3",
+    "vitest": "5.0.3"
+  }
+}

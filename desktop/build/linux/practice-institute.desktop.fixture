@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Practice Institute
+Comment=Private exam server and owner launcher
+Exec="/opt/Practice Institute/practice-institute" %U
+Terminal=false
+Type=Application
+Icon=practice-institute
+StartupWMClass=practice-institute
+Categories=Education;

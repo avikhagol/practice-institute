@@ -1,0 +1,63 @@
+# Prepared locally only. Owner must rehearse and configure Pages/Actions variables.
+# The public API URL is public configuration; credentials never belong in Actions.
+name: Student GitHub Pages
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: student-pages
+  cancel-in-progress: true
+env:
+  APP_DIR: app
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    defaults:
+      run:
+        working-directory: ${{ env.APP_DIR }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - name: Validate the owner's public HTTPS API origin
+        env:
+          VITE_PI_API_BASE: ${{ vars.VITE_PI_API_BASE }}
+        run: node scripts/check-pages-api.mjs
+      - name: Build only the student website
+        run: npm run build
+        env:
+          BASE_PATH: /${{ github.event.repository.name }}/
+          VITE_PI_API_BASE: ${{ vars.VITE_PI_API_BASE }}
+      - name: Check student assets, workers, routes and CSP
+        run: npm run check:student-build
+        env:
+          BASE_PATH: /${{ github.event.repository.name }}/
+          VITE_PI_API_BASE: ${{ vars.VITE_PI_API_BASE }}
+      - name: Fail-closed public asset policy and tracked-source audit
+        working-directory: .
+        # RTK is local developer tooling; the prepared Actions audit uses git directly.
+        # The OCR files are already checked in and bound to the public hash policy.
+        run: |
+          node packaging/scripts/public-manifest.mjs
+          node packaging/scripts/audit-public.mjs --ci-git
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: app/dist
+  deploy:
+    needs: build
+    runs-on: ubuntu-22.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

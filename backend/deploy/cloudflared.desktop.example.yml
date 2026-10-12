@@ -1,0 +1,12 @@
+# Desktop launcher tunnel template. The launcher writes a private copy into the per-user
+# config directory; it is NOT deployed and contains no credentials.
+# The service is the STUDENT-ONLY public listener (StudentGateway, default 127.0.0.1:8788),
+# never the owner listener (8787). Even a catch-all mistake here cannot reach /admin or /api/admin.
+tunnel: <TUNNEL-UUID>
+credentials-file: /absolute/private/path/<TUNNEL-UUID>.json
+
+ingress:
+  - hostname: api.example.invalid
+    path: ^/api/v1(/.*)?$
+    service: http://127.0.0.1:8788
+  - service: http_status:404

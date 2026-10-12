@@ -1,0 +1,61 @@
+appId: org.practiceinstitute.desktop
+productName: Practice Institute
+asar: true
+electronFuses:
+  runAsNode: false
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+directories:
+  output: ../release
+files:
+  - dist/**/*
+  - package.json
+publish: null
+extraMetadata:
+  homepage: https://practice-institute.invalid
+  desktopName: practice-institute.desktop
+extraResources:
+  - from: build/icon.png
+    to: icon.png
+  - from: build/icon.ico
+    to: icon.ico
+win:
+  icon: build/icon.ico
+  target:
+    - target: nsis
+      arch: [x64]
+  extraResources:
+    - from: ../packaging/output/runtime-win
+      to: runtime
+      filter: ["**/*"]
+  artifactName: Practice-Institute-Setup-${version}-${arch}.${ext}
+nsis:
+  oneClick: false
+  perMachine: false
+  allowElevation: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  deleteAppDataOnUninstall: false
+linux:
+  syncDesktopName: true
+  description: Private exam server and owner launcher
+  icon: build/icon.png
+  target:
+    - target: deb
+      arch: [x64]
+  executableName: practice-institute
+  category: Education
+  extraResources:
+    - from: ../packaging/output/runtime-linux
+      to: runtime
+      filter: ["**/*"]
+  artifactName: practice-institute_${version}_amd64.${ext}
+  desktop:
+    entry:
+      Name: Practice Institute
+      Comment: Private exam server and owner launcher
+      Categories: Education;
+deb:
+  maintainer: Practice Institute (local build; owner contact not configured)
+  depends: [libgtk-3-0, libnss3, libxss1, libxtst6, libatspi2.0-0, libdrm2, libgbm1, libasound2]

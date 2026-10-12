@@ -1,4 +1,6 @@
 .alfrd/
+.alfrd-agent-loop-task.lock
+.serena/
 .agent-cache/
 .npm-cache/
 .cache/
@@ -13,6 +15,9 @@
 **/.vitest/
 **/playwright-report/
 **/test-results/
+# Generated browser-test output (traces, a11y trees, screenshots).
+reports/
+screenshots/
 **/dist/
 **/dist-admin/
 release/
@@ -39,3 +44,9 @@ fixtures/real/
 fixtures/synthetic/oversize.pdf
 task/next-step-*.md
 task/response-*.md
+AGENTS.md
+ARCHITECTURE.md
+DELIVERY.md
+PROGRESS.md
+alfrd.plan.csv
+alfrd.yaml
