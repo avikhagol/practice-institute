@@ -5,6 +5,9 @@
   backup <file>        consistent online SQLite backup; --full includes sources (stop server)
   restore <file>       replace DB; --full restores data+sources (server must be stopped)
   serve [--host --port] run the API (defaults to 127.0.0.1:8787, loopback only)
+  serve-desktop        packaged launcher runtime: owner + student-only public loopback listeners
+  setup-owner --stdin-json   GUI first-run owner creation (one JSON line on stdin)
+  owner-status         JSON first-run detection for the launcher
 """
 
 from __future__ import annotations
@@ -144,6 +147,28 @@ def cmd_serve(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_serve_desktop(args: argparse.Namespace) -> int:
+    from .desktop import serve_desktop
+
+    public = None if args.public_port == 0 else args.public_port
+    return serve_desktop(args.owner_port, public, stdin=sys.stdin.buffer if args.stdin_control else None)
+
+
+def cmd_setup_owner(args: argparse.Namespace) -> int:
+    from .desktop import setup_owner_from_json
+
+    if not args.stdin_json:
+        print("setup-owner requires --stdin-json (use `setup` in a terminal)", file=sys.stderr)
+        return 2
+    return setup_owner_from_json(sys.stdin)
+
+
+def cmd_owner_status(_args: argparse.Namespace) -> int:
+    from .desktop import owner_status
+
+    return owner_status()
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="pi-admin", description="Practice Institute backend owner tools")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -163,7 +188,27 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--host", default=os.environ.get("PI_HOST", "127.0.0.1"))
     p.add_argument("--port", type=int, default=int(os.environ.get("PI_PORT", "8787")))
     p.set_defaults(fn=cmd_serve)
+    p = sub.add_parser("serve-desktop")
+    p.add_argument("--owner-port", type=int, default=int(os.environ.get("PI_PORT", "8787")))
+    p.add_argument("--public-port", type=int, default=int(os.environ.get("PI_PUBLIC_PORT", "8788")),
+                   help="student-only loopback listener for the tunnel; 0 disables it")
+    p.add_argument("--stdin-control", action="store_true", help="stop when stdin closes or reads 'stop'")
+    p.set_defaults(fn=cmd_serve_desktop)
+    p = sub.add_parser("setup-owner")
+    p.add_argument("--stdin-json", action="store_true")
+    p.set_defaults(fn=cmd_setup_owner)
+    sub.add_parser("owner-status").set_defaults(fn=cmd_owner_status)
+    from .desktop import exam_activity
+    sub.add_parser("exam-activity").set_defaults(fn=lambda _args: exam_activity())
     args = parser.parse_args(argv)
+    if args.cmd in {"backup", "restore"} and args.full:
+        from .desktop import RuntimeLocked, writer_guard
+        try:
+            with writer_guard(load_settings().data_dir):
+                return args.fn(args)
+        except RuntimeLocked:
+            print("full recovery requires all runtimes for this profile to be stopped", file=sys.stderr)
+            return 4
     return args.fn(args)
 
 

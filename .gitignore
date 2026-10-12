@@ -50,3 +50,7 @@ DELIVERY.md
 PROGRESS.md
 alfrd.plan.csv
 alfrd.yaml
+.aws/
+.codex/
+.agents/
+task/

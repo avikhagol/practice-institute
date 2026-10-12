@@ -119,3 +119,32 @@ def test_setup_cli_first_owner_editor_and_password_not_logged(tmp_path, monkeypa
     assert cli.main(['backup', '--full', str(bundle)]) == 0
     assert cli.main(['restore', '--full', str(bundle)]) == 0
     shutil.rmtree(bundle)
+
+
+@pytest.mark.parametrize('changed_file', ['database', 'source-symlink'])
+def test_restore_revalidates_staged_bytes_before_live_swap(admin, settings, tmp_path, monkeypatch, changed_file):
+    upload(admin)
+    original = full_settings(settings)
+    bundle = tmp_path.parent / (tmp_path.name + '-race-bundle')
+    backup_full(original, bundle)
+    before = original.db_path.read_bytes()
+    copyfile = shutil.copyfile
+
+    def replace_between_check_and_copy(src, dst, **kwargs):
+        if src == bundle / DB_NAME:
+            if changed_file == 'database':
+                with sqlite3.connect(src) as db:
+                    db.execute("UPDATE admins SET username='changed-after-validation'")
+            else:
+                pdf = next((bundle / 'sources').glob('*.pdf'))
+                pdf.unlink()
+                pdf.symlink_to(next((original.data_dir / 'sources').glob('*.pdf')))
+        return copyfile(src, dst, **kwargs)
+
+    monkeypatch.setattr(shutil, 'copyfile', replace_between_check_and_copy)
+    with pytest.raises(ValueError, match='checksum|symlinks'):
+        restore_full(original, bundle)
+    assert original.db_path.read_bytes() == before
+    assert not list(original.data_dir.parent.glob(original.data_dir.name + '.pre-restore-*'))
+    assert not list(original.data_dir.parent.glob('.pi-restore-*'))
+    shutil.rmtree(bundle)

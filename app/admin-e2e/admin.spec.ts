@@ -104,7 +104,7 @@ test('bulk review respects filters, preserves keys and recovers from a partial f
   await expect(page.getByText('Up to date.', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Question bank', exact: true }).click();
   await page.getByLabel('Search bank').fill(prefix);
-  await page.getByLabel('Status', { exact: true }).selectOption('needs-review');
+  await page.getByRole('combobox', { name: /^Status\b/ }).selectOption('needs-review');
   const selectAll = page.getByRole('checkbox', { name: 'Select all matching questions', exact: true });
   await page.getByRole('checkbox', { name: `Select question ${ids[0]}`, exact: true }).check();
   await expect(selectAll).toHaveJSProperty('indeterminate', true);
@@ -119,13 +119,13 @@ test('bulk review respects filters, preserves keys and recovers from a partial f
   expect(bank.find((q: { id: number }) => q.id === ids[0])).toMatchObject({ status: 'reviewed', answer_key: 'A', key_verified: 1, version: 2 });
   expect(bank.find((q: { id: number }) => q.id === ids[1])).toMatchObject({ status: 'reviewed', answer_key: null, key_verified: 0, version: 2 });
   expect(bank.find((q: { id: number }) => q.id === ids[2])).toMatchObject({ status: 'excluded', version: 1 });
-  await page.getByLabel('Status', { exact: true }).selectOption('reviewed');
+  await page.getByRole('combobox', { name: /^Status\b/ }).selectOption('reviewed');
   await selectAll.check();
   await page.getByLabel('Search bank').fill(`${prefix} question 1`);
   await expect(page.getByText('0 selected', { exact: true })).toBeVisible();
   await page.getByLabel('Search bank').fill(prefix);
   await selectAll.check();
-  await page.getByLabel('Bulk action').selectOption('needs-review');
+  await page.getByRole('combobox', { name: /^Bulk action\b/ }).selectOption('needs-review');
   await page.route(`**/api/admin/questions/${ids[1]}`, route => route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ detail: 'question changed; reload before editing' }) }));
   await apply.click();
   await expect(page.getByRole('alert')).toContainText('1 of 2 questions updated. Remaining questions are still selected.');
@@ -133,9 +133,9 @@ test('bulk review respects filters, preserves keys and recovers from a partial f
   await page.unroute(`**/api/admin/questions/${ids[1]}`);
   await apply.click();
   await expect(page.getByText('1 question marked needs review.', { exact: false })).toBeVisible();
-  await page.getByLabel('Status', { exact: true }).selectOption('');
+  await page.getByRole('combobox', { name: /^Status\b/ }).selectOption('');
   await selectAll.check();
-  await page.getByLabel('Bulk action').selectOption('excluded');
+  await page.getByRole('combobox', { name: /^Bulk action\b/ }).selectOption('excluded');
   if (info.project.name === 'mobile') await page.setViewportSize({ width: 320, height: 740 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
   await page.screenshot({ path: `../screenshots/bulk-review-${info.project.name}.png`, fullPage: true });

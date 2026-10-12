@@ -13,6 +13,7 @@ import math
 import csv
 import hashlib
 import io
+import ipaddress
 import random
 from pathlib import Path
 import re
@@ -117,8 +118,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     Db = Annotated[sqlite3.Connection, Depends(get_db)]
 
     def client_id(request: Request) -> str:
+        # `pi_public` is set only by StudentGateway (the tunnel-facing listener), never from a header.
+        # cf-connecting-ip is trusted solely there; the owner listener must never key on it.
+        if request.scope.get("pi_public"):
+            try:
+                return str(ipaddress.ip_address(request.headers.get("cf-connecting-ip", "").strip()))
+            except ValueError:
+                pass
         if settings.trust_proxy_headers:
-            forwarded = request.headers.get("cf-connecting-ip") or request.headers.get("x-forwarded-for", "")
+            forwarded = request.headers.get("x-forwarded-for", "")
             if forwarded:
                 return forwarded.split(",")[0].strip()
         return request.client.host if request.client else "unknown"
@@ -793,7 +801,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if not exam["release_ranks"]: raise HTTPException(403, "ranks not released")
         return {"ranks": exam_stats(exam["id"], None, db)["ranks"]}
 
-    static_dir = Path(__file__).resolve().parent.parent.parent / "app" / "dist-admin"
+    static_dir = settings.admin_dist
     if static_dir.is_dir():
         app.mount("/admin", StaticFiles(directory=static_dir, html=True), name="admin")
     return app

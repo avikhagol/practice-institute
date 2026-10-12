@@ -77,16 +77,7 @@ def backup_full(settings: Settings, dest: Path) -> None:
             shutil.rmtree(stage)
 
 
-def restore_full(settings: Settings, bundle: Path) -> Path | None:
-    _layout(settings, bundle)
-    if bundle.is_symlink() or not bundle.is_dir():
-        raise ValueError("bundle must be a regular directory")
-    if (bundle / "manifest.json").is_symlink():
-        raise ValueError("bundle symlinks are forbidden")
-    manifest = json.loads((bundle / "manifest.json").read_text())
-    if not isinstance(manifest, dict) or manifest.get("version") != 1 or not isinstance(manifest.get("files"), dict):
-        raise ValueError("unsupported bundle manifest")
-    expected = manifest["files"]
+def _validate_bundle_files(bundle: Path, expected: dict) -> None:
     actual = set()
     for p in bundle.rglob("*"):
         if p.is_symlink():
@@ -101,12 +92,28 @@ def restore_full(settings: Settings, bundle: Path) -> Path | None:
     if actual != set(expected) or DB_NAME not in actual:
         raise ValueError("bundle file list mismatch")
     _check_database(bundle / DB_NAME, bundle / "sources")
+
+
+def restore_full(settings: Settings, bundle: Path) -> Path | None:
+    _layout(settings, bundle)
+    if bundle.is_symlink() or not bundle.is_dir():
+        raise ValueError("bundle must be a regular directory")
+    if (bundle / "manifest.json").is_symlink():
+        raise ValueError("bundle symlinks are forbidden")
+    manifest = json.loads((bundle / "manifest.json").read_text())
+    if not isinstance(manifest, dict) or manifest.get("version") != 1 or not isinstance(manifest.get("files"), dict):
+        raise ValueError("unsupported bundle manifest")
+    expected = manifest["files"]
+    _validate_bundle_files(bundle, expected)
     settings.data_dir.parent.mkdir(parents=True, exist_ok=True)
     stage = Path(tempfile.mkdtemp(prefix=".pi-restore-", dir=settings.data_dir.parent))
     keep = None
     try:
         shutil.copyfile(bundle / DB_NAME, stage / DB_NAME)
-        shutil.copytree(bundle / "sources", stage / "sources")
+        shutil.copytree(bundle / "sources", stage / "sources", symlinks=True)
+        # The chosen bundle can change after validation. Check the private staged
+        # bytes against the captured manifest before opening SQLite or swapping data.
+        _validate_bundle_files(stage, expected)
         conn = connect(stage / DB_NAME)
         try:
             migrate(conn)

@@ -1,2 +1,2 @@
 TARGET_NAME,FILENAMES,PROJECT_CODE,WORKDIR,t001-claude,t002-codex,t003-sonnet,t004-codex,t005-claude,t006-sonnet,t007-codex,t008-claude
-task,task.md,,,todo,todo,todo,todo,todo,todo,todo,todo
+task,task.md,,,done,done,done,done,done,done,done,done

@@ -50,6 +50,9 @@ class Settings:
     expiry_sweep_s: float = 2.0
     join_rate_per_min: int = 20
     login_rate_per_min: int = 8
+    # Built admin site. Packaged runtimes pass an absolute PI_ADMIN_DIST; the default is the
+    # source-checkout layout (app/dist-admin next to backend/).
+    admin_dist: Path = BACKEND_DIR.parent / "app" / "dist-admin"
 
 
 def load_settings() -> Settings:
@@ -69,4 +72,5 @@ def load_settings() -> Settings:
         expiry_sweep_s=float(os.environ.get("PI_EXPIRY_SWEEP_S", "2.0")),
         join_rate_per_min=_int("PI_JOIN_RATE_PER_MIN", 20),
         login_rate_per_min=_int("PI_LOGIN_RATE_PER_MIN", 8),
+        admin_dist=Path(os.environ.get("PI_ADMIN_DIST") or BACKEND_DIR.parent / "app" / "dist-admin").resolve(),
     )

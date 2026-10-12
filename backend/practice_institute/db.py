@@ -65,6 +65,11 @@ def migrate(conn: sqlite3.Connection) -> list[str]:
             continue
         conn.execute("BEGIN IMMEDIATE")
         try:
+            # Another desktop CLI may have applied this migration while we waited
+            # for the writer lock. The pre-lock snapshot is only an optimisation.
+            if conn.execute("SELECT 1 FROM schema_migrations WHERE version=?", (version,)).fetchone():
+                conn.execute("COMMIT")
+                continue
             # executescript would COMMIT implicitly; split on ';' statement boundaries instead.
             for stmt in _split_sql(sql):
                 conn.execute(stmt)
